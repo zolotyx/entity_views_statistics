@@ -1,0 +1,149 @@
+<?php
+
+
+module_load_include('inc', 'entity_views_statistics', 'entity_views_statistics.db');
+
+/**
+ * Implements hook_menu().
+ */
+function entity_views_statistics_menu() {
+  $items = array();
+
+  $items['admin/config/content/entity_views_statistics'] = array(
+    'title' => t('Entity views statistics settings'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('entity_views_statistics_admin_settings_form'),
+    'access arguments' => array('administer modules'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'entity_views_statistics.admin.inc',
+  );
+
+  $items['entity_views_statistics/%/%'] = array(
+    'title' => t('Entity views counter'),
+    'page callback' => 'entity_views_statistics_entity_view_callback',
+    'page arguments' => array(1, 2),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+function entity_views_statistics_entity_view_callback($entity_type, $entity_id) {
+  if ($entity_type && $entity_id) {
+    if (!entity_views_statistics_is_entity_count($entity_type)) {
+      return;
+    }
+    global $user;
+    if (!entity_views_statistics_is_user_count($user)) {
+      return;
+    }
+    entity_views_statistics_count_view_insert($entity_id, $entity_type);
+  }
+  drupal_exit();
+}
+
+function entity_views_statistics_is_entity_count($entity_type) {
+  $entity_types = variable_get('entity_views_statistics_entity_types_options', array());
+  if (in_array($entity_type, $entity_types)) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+function entity_views_statistics_is_user_count($user) {
+  $count_user_roles = variable_get('entity_views_statistics_user_roles_options');
+  foreach ($user->roles as $key => $role) {
+    if (!empty($count_user_roles[$key])) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+
+/**
+ * Implements hook_node_load().
+ */
+function entity_views_statistics_node_load($nodes, $types) {
+  $nids = array_keys($nodes);
+  if (!empty($nids)) {
+    $views = entity_views_statistics_get_entity_views_multiple($nids);
+    foreach ($nodes as $nid => $node) {
+      $nodes[$nid]->views_count = isset($views[$nid]) ? $views[$nid] : 0;
+    }
+  }
+}
+
+/**
+ * Implements hook_node_view().
+ */
+function entity_views_statistics_node_view($node, $view_mode, $langcode) {
+  if ($view_mode == 'full') {
+    $node->content['#attached'] = array(
+      'js' => array(
+        array(
+          'data' => array(
+            'entity_views_statistics' => array(
+              'entity_id' => $node->nid,
+              'entity_type' => 'node'
+            ),
+          ),
+          'type' => 'setting'
+        ),
+        drupal_get_path('module', 'entity_views_statistics') . '/entity_views_statistics.js',
+      ),
+    );
+  }
+  $node->content['entity_views_statistics_views_count'] = array(
+    '#markup' => '<div title="' . t('Views count: @views_count', array('@views_count' => $node->views_count)) . '" class="views-count">' . $node->views_count . '</div>',
+  );
+  if ($view_mode == 'teaser') {
+    $links = array();
+    $links['comment-comments'] = array(
+      'title' => t('Views count: @views_count', array('@views_count' => $node->views_count)),
+      'href' => "node/$node->nid",
+      'attributes' => array(
+        'title' => t('Views count')
+      ),
+      'html' => TRUE,
+    );
+
+    $node->content['links']['entity_views_statistics_views_count'] = array(
+      '#theme' => 'links',
+      '#links' => $links,
+      '#attributes' => array('class' => array('links', 'inline')),
+    );
+  }
+
+}
+
+/**
+ * Implements hook_field_extra_fields().
+ */
+function entity_views_statistics_field_extra_fields() {
+  $extra = array();
+  if (in_array('node', variable_get('entity_views_statistics_entity_types_options', array()))) {
+    foreach (node_type_get_names() as $type => $name) {
+      $extra['node'][$type] = array(
+        'display' => array(
+          'entity_views_statistics_views_count' => array(
+            'label' => t('Views count'),
+            'description' => t('Entity views count'),
+            'weight' => 5,
+          ),
+        ),
+      );
+    }
+  }
+  return $extra;
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function entity_views_statistics_views_api() {
+  return array(
+    'api' => 3.0,
+    'path' => drupal_get_path('module', 'entity_views_statistics'),
+  );
+}

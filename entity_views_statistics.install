@@ -1,0 +1,96 @@
+<?php
+
+/**
+ * Implements hook_schema().
+ */
+function entity_views_statistics_schema() {
+  $schema = array();
+
+  $schema['entity_views_statistics'] = array(
+    'description' => 'The count views of node for every user.',
+    'fields' => array(
+      'entity_id' => array(
+        'description' => 'The entity ID.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'entity_type' => array(
+        'description' => 'entity type',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'uid' => array(
+        'description' => 'The user ID who view of node.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'ip' => array(
+        'description' => 'ip address',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'timestamp' => array(
+        'description' => 'The Unix timestamp when the node was view.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'entity_id_entity_type_uid' => array('entity_id', 'entity_type', 'uid'),
+    ),
+  );
+
+  $schema['entity_views_statistics_counter'] = array(
+    'description' => 'The count views of entity for every user.',
+    'fields' => array(
+      'entity_id' => array(
+        'description' => 'The entity ID.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'entity_type' => array(
+        'description' => 'entity type',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'count' => array(
+        'description' => 'The entity views count.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'entity_id_entity_type' => array('entity_id', 'entity_type'),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function entity_views_statistics_install() {
+  variable_set('entity_views_statistics_entity_types_options', array());
+  variable_set('entity_views_statistics_user_roles_options', array());
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function entity_views_statistics_uninstall() {
+  variable_del('entity_views_statistics_entity_types_options');
+  variable_del('entity_views_statistics_user_roles_options');
+}

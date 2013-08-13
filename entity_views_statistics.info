@@ -1,0 +1,9 @@
+name = Entity views statistics module
+core = 7.x
+
+configure = admin/config/content/entity_views_statistics
+
+version = "7.x"
+package = "Custom"
+
+
